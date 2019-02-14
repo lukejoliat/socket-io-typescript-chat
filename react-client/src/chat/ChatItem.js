@@ -16,6 +16,9 @@ const styles = {
     marginBottom: '2px',
     borderRadius: '5px',
     backgroundColor: '#E8EAF6'
+  },
+  joinedNotification: {
+    justifyContent: 'center'
   }
 };
 function ChatItem(props) {
@@ -24,9 +27,12 @@ function ChatItem(props) {
     <UserContext.Consumer>
       {user => (
         <ListItem
-          className={message.from.id === user.id ? classes.currentUser : null}
+          className={`${
+            message.from.id === user.id && message.action !== 'JOINED'
+              ? classes.currentUser
+              : null
+          } ${message.action === 'JOINED' ? classes.joinedNotification : null}`}
         >
-          {/* {user.id} | {message.from.id} */}
           {message.action === 'JOINED' && (
             <p>
               <span>

@@ -34,63 +34,61 @@ const styles = {
 
 export const UserContext = React.createContext({});
 class App extends React.PureComponent {
-  state = {
-    drawerIsOpen: false,
-    dialogIsOpen: true,
-    messages: [],
-    dialogInputValue: ``
-  };
   constructor() {
     super();
     SocketService.onMessage().subscribe(data => {
       this.setState({ messages: [...this.state.messages, data] });
     });
-    this.user = {};
   }
-
+  state = {
+    drawerIsOpen: false,
+    dialogIsOpen: true,
+    messages: [],
+    user: {}
+  };
   toggleDrawer = () =>
     this.setState({ drawerIsOpen: !this.state.drawerIsOpen });
 
-  toggleDialog = e => {
-    if (e) {
-      this.user = {
-        id: getRandomId(),
-        name: e,
-        avatar: `https://api.adorable.io/avatars/285/${getRandomId()}.png`
-      };
-      this.sendNotification('JOINED');
-    }
-    this.setState({ dialogIsOpen: !this.state.dialogIsOpen });
+  closeDialog = e => {
+    this.setState(
+      {
+        user: {
+          id: getRandomId(),
+          name: e,
+          avatar: `https://api.adorable.io/avatars/285/${getRandomId()}.png`
+        },
+        dialogIsOpen: false
+      },
+      () => this.sendNotification('JOINED')
+    );
   };
 
   sendMessage = e => {
-    if (e.key === 'Enter' && e.target.value) {
+    const { key, target } = e;
+    if (key === 'Enter' && target.value) {
       SocketService.send({
-        from: this.user,
-        content: e.target.value
+        from: this.state.user,
+        content: target.value
       });
-      e.target.value = ``;
+      target.value = ``;
     }
   };
 
-  handleDialogKeyup = val => this.setState({ dialogInputValue: val });
+  handleSubmit = val => this.closeDialog(val);
 
-  handleSubmit = () => this.toggleDialog(this.state.dialogInputValue);
-
-  sendNotification(action) {
+  sendNotification = action => {
     let message;
     if (action === 'JOINED') {
       message = {
-        from: this.user,
-        action: action
+        from: this.state.user,
+        action
       };
     }
     SocketService.send(message);
-  }
+  };
 
   render() {
     const { classes } = this.props;
-
     return (
       <div className={classes.root}>
         <AppBar position="static">
@@ -99,8 +97,9 @@ class App extends React.PureComponent {
               className={classes.menuButton}
               color="inherit"
               aria-label="Menu"
+              onClick={this.toggleDrawer}
             >
-              <MenuIcon onClick={this.toggleDrawer} />
+              <MenuIcon />
             </IconButton>
             <Typography
               variant="title"
@@ -141,7 +140,7 @@ class App extends React.PureComponent {
           </List>
         </Drawer>
         <div className={classes.appContent}>
-          <UserContext.Provider value={this.user}>
+          <UserContext.Provider value={this.state.user}>
             <ChatList
               messages={this.state.messages}
               handleKeyPress={this.sendMessage}

@@ -43,6 +43,7 @@ function Chat(props) {
             id="standard-name"
             placeholder="Type your message"
             margin="normal"
+            fullWidth
             onKeyPress={handleKeyPress}
             InputProps={{
               startAdornment: (

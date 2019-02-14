@@ -7,6 +7,9 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 
 export default class FormDialog extends React.Component {
+  state = { inputValue: `` };
+  handleDialogKeyup = val => this.setState({ inputValue: val });
+  formValid = val => (val ? true : false);
   render() {
     return (
       <Dialog
@@ -19,14 +22,20 @@ export default class FormDialog extends React.Component {
           <TextField
             autoFocus
             margin="dense"
-            label="Username"
             type="text"
             fullWidth
-            onChange={e => this.props.handleDialogKeyup(e.target.value)}
+            required
+            error={!this.formValid(this.state.inputValue)}
+            value={this.state.inputValue}
+            onChange={({ target }) => this.handleDialogKeyup(target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={this.props.handleSubmit} color="primary">
+          <Button
+            onClick={() => this.props.handleSubmit(this.state.inputValue)}
+            color="primary"
+            disabled={!this.formValid(this.state.inputValue)}
+          >
             Save
           </Button>
         </DialogActions>
