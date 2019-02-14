@@ -10,7 +10,10 @@ import PersonIcon from '@material-ui/icons/Person';
 import CodeIcon from '@material-ui/icons/Code';
 import Drawer from '@material-ui/core/Drawer';
 import { ListItem, ListItemText, ListItemIcon, List } from '@material-ui/core';
-import Chat from './chat/Chat';
+import ChatList from './chat/ChatList';
+import FormDialog from './dialog/Dialog';
+import SocketService from './socket/SocketService';
+import { getRandomId } from './utils/utils';
 
 const styles = {
   root: {
@@ -19,30 +22,71 @@ const styles = {
   flex: {
     flex: 1
   },
-  menuButton: {},
-  drawerHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    padding: '0 8px'
+  appContent: {
+    position: 'fixed',
+    height: '100%',
+    width: '100%'
   },
-  fab: {
-    position: 'absolute',
-    top: 35,
-    right: 20
+  listItemText: {
+    textAlign: 'center'
   }
 };
 
-class App extends React.Component {
-  state = { drawerIsOpen: false };
+export const UserContext = React.createContext({});
+class App extends React.PureComponent {
+  state = {
+    drawerIsOpen: false,
+    dialogIsOpen: true,
+    messages: [],
+    dialogInputValue: ``
+  };
+  constructor() {
+    super();
+    SocketService.onMessage().subscribe(data => {
+      this.setState({ messages: [...this.state.messages, data] });
+    });
+    this.user = {};
+  }
 
-  handleDrawerOpen = () => {
-    this.setState({ drawerIsOpen: true });
+  toggleDrawer = () =>
+    this.setState({ drawerIsOpen: !this.state.drawerIsOpen });
+
+  toggleDialog = e => {
+    if (e) {
+      this.user = {
+        id: getRandomId(),
+        name: e,
+        avatar: `https://api.adorable.io/avatars/285/${getRandomId()}.png`
+      };
+      this.sendNotification('JOINED');
+    }
+    this.setState({ dialogIsOpen: !this.state.dialogIsOpen });
   };
 
-  handleDrawerClose = () => {
-    this.setState({ drawerIsOpen: false });
+  sendMessage = e => {
+    if (e.key === 'Enter' && e.target.value) {
+      SocketService.send({
+        from: this.user,
+        content: e.target.value
+      });
+      e.target.value = ``;
+    }
   };
+
+  handleDialogKeyup = val => this.setState({ dialogInputValue: val });
+
+  handleSubmit = () => this.toggleDialog(this.state.dialogInputValue);
+
+  sendNotification(action) {
+    let message;
+    if (action === 'JOINED') {
+      message = {
+        from: this.user,
+        action: action
+      };
+    }
+    SocketService.send(message);
+  }
 
   render() {
     const { classes } = this.props;
@@ -56,7 +100,7 @@ class App extends React.Component {
               color="inherit"
               aria-label="Menu"
             >
-              <MenuIcon onClick={this.handleDrawerOpen} />
+              <MenuIcon onClick={this.toggleDrawer} />
             </IconButton>
             <Typography
               variant="title"
@@ -73,7 +117,7 @@ class App extends React.Component {
           }}
           open={this.state.drawerIsOpen}
           variant="temporary"
-          onBackdropClick={this.handleDrawerClose}
+          onBackdropClick={this.toggleDrawer}
         >
           <List component="nav">
             <ListItem button>
@@ -96,9 +140,21 @@ class App extends React.Component {
             </ListItem>
           </List>
         </Drawer>
-        <div className="app-content">
-          <Chat />
+        <div className={classes.appContent}>
+          <UserContext.Provider value={this.user}>
+            <ChatList
+              messages={this.state.messages}
+              handleKeyPress={this.sendMessage}
+            />
+          </UserContext.Provider>
         </div>
+        {this.state.dialogIsOpen && (
+          <FormDialog
+            toggleDialog={this.toggleDialog}
+            handleDialogKeyup={this.handleDialogKeyup}
+            handleSubmit={this.handleSubmit}
+          />
+        )}
       </div>
     );
   }
