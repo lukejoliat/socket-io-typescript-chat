@@ -10,11 +10,26 @@ import PersonIcon from '@material-ui/icons/Person';
 import CodeIcon from '@material-ui/icons/Code';
 import Drawer from '@material-ui/core/Drawer';
 import { ListItem, ListItemText, ListItemIcon, List } from '@material-ui/core';
-import ChatList from './chat/ChatList';
-import FormDialog from './dialog/Dialog';
+import ChatList from './components/chat/ChatList';
+import FormDialog from './components/dialog/Dialog';
 import SocketService from './socket/SocketService';
 import { getRandomId } from './utils/utils';
-
+import {
+  openDrawer,
+  closeDrawer,
+  closeDialog,
+  createUser,
+  sendMessage
+} from './actions/index';
+import { connect } from 'react-redux';
+function mapStateToProps(state) {
+  return {
+    messages: state.messages,
+    user: state.user,
+    drawerIsOpen: state.drawerIsOpen,
+    dialogIsOpen: state.dialogIsOpen
+  };
+}
 const styles = {
   root: {
     width: '100%'
@@ -32,61 +47,56 @@ const styles = {
   }
 };
 
-export const UserContext = React.createContext({});
 class App extends React.PureComponent {
   constructor() {
-    super();
     SocketService.onMessage().subscribe(data => {
-      this.setState({ messages: [...this.state.messages, data] });
+      this.props.dispatch(sendMessage(data));
     });
   }
-  state = {
-    drawerIsOpen: false,
-    dialogIsOpen: true,
-    messages: [],
-    user: {}
-  };
-  toggleDrawer = () =>
-    this.setState({ drawerIsOpen: !this.state.drawerIsOpen });
-
-  closeDialog = e => {
-    this.setState(
-      {
-        user: {
-          id: getRandomId(),
-          name: e,
-          avatar: `https://api.adorable.io/avatars/285/${getRandomId()}.png`
-        },
-        dialogIsOpen: false
-      },
-      () => this.sendNotification('JOINED')
-    );
-  };
-
-  sendMessage = e => {
+  componentDidUpdate(prevProps) {
+    if (this.props.user.id !== prevProps.user.id)
+      this.sendNotification('JOINED');
+  }
+  toggleDrawer() {
+    this.props.drawerIsOpen === false
+      ? this.props.dispatch(openDrawer())
+      : this.props.dispatch(closeDrawer());
+  }
+  closeDialog(e) {
+    const user = {
+      id: getRandomId(),
+      name: e,
+      avatar: `https://api.adorable.io/avatars/285/${getRandomId()}.png`
+    };
+    this.props.dispatch(closeDialog());
+    this.createUser(user);
+  }
+  createUser(user) {
+    this.props.dispatch(createUser(user));
+  }
+  sendMessage(e) {
     const { key, target } = e;
     if (key === 'Enter' && target.value) {
       SocketService.send({
-        from: this.state.user,
+        from: this.props.user,
         content: target.value
       });
       target.value = ``;
     }
-  };
-
-  handleSubmit = val => this.closeDialog(val);
-
-  sendNotification = action => {
+  }
+  handleSubmit(val) {
+    this.closeDialog(val);
+  }
+  sendNotification(action) {
     let message;
     if (action === 'JOINED') {
       message = {
-        from: this.state.user,
+        from: this.props.user,
         action
       };
     }
     SocketService.send(message);
-  };
-
+  }
   render() {
     const { classes } = this.props;
     return (
@@ -114,7 +124,7 @@ class App extends React.PureComponent {
           classes={{
             paper: classes.drawerPaper
           }}
-          open={this.state.drawerIsOpen}
+          open={this.props.drawerIsOpen}
           variant="temporary"
           onBackdropClick={this.toggleDrawer}
         >
@@ -140,14 +150,13 @@ class App extends React.PureComponent {
           </List>
         </Drawer>
         <div className={classes.appContent}>
-          <UserContext.Provider value={this.state.user}>
-            <ChatList
-              messages={this.state.messages}
-              handleKeyPress={this.sendMessage}
-            />
-          </UserContext.Provider>
+          <ChatList
+            messages={this.props.messages}
+            handleKeyPress={this.sendMessage}
+            user={this.props.user}
+          />
         </div>
-        {this.state.dialogIsOpen && (
+        {this.props.dialogIsOpen && (
           <FormDialog
             toggleDialog={this.toggleDialog}
             handleDialogKeyup={this.handleDialogKeyup}
@@ -159,4 +168,4 @@ class App extends React.PureComponent {
   }
 }
 
-export default withStyles(styles)(App);
+export default withStyles(styles)(connect(mapStateToProps)(App));

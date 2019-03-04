@@ -14,22 +14,9 @@ class SocketService {
   }
 
   onMessage() {
-    // return new Observable<Message>(observer => {
-    //     this.socket.on('message', (data: Message) => observer.next(data));
-    // });
     const subject$ = new Subject();
     this.socket.on('message', data => subject$.next(data));
     return subject$;
-  }
-
-  onEvent(event) {
-    // return (
-    //   new Observable() <
-    //   Event >
-    //   (observer => {
-    //     this.socket.on(event, () => observer.next());
-    //   })
-    // );
   }
 }
 

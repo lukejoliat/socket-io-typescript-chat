@@ -29,13 +29,13 @@ const styles = {
   }
 };
 function Chat(props) {
-  const { classes, messages, handleKeyPress } = props;
+  const { classes, messages, handleKeyPress, user } = props;
   return (
     <Card className={classes.card}>
       <CardContent>
         <List className={classes.chatList}>
           {messages.map((m, idx) => {
-            return <ChatItem message={m} key={idx} />;
+            return <ChatItem message={m} key={idx} user={user} />;
           })}
         </List>
         <div className={classes.chatFooterContainer}>
