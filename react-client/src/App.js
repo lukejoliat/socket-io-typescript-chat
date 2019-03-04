@@ -49,9 +49,12 @@ const styles = {
 
 class App extends React.PureComponent {
   constructor() {
+    super();
     SocketService.onMessage().subscribe(data => {
       this.props.dispatch(sendMessage(data));
     });
+    this.handleSubmit = this.handleSubmit.bind(this);
+    this.sendMessage = this.sendMessage.bind(this);
   }
   componentDidUpdate(prevProps) {
     if (this.props.user.id !== prevProps.user.id)
